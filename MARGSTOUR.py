@@ -9,7 +9,14 @@ from plotly.subplots import make_subplots
 server = Flask(__name__)
 
 # Shared data storage
-data = pd.DataFrame(columns=["Bar", "Rating", "Comments"])
+data = pd.DataFrame(columns=[
+    "Bar",
+    "Margarita Rating",
+    "Price Rating",
+    "Atmosphere Rating",
+    "Average Rating", 
+    "Comments"
+])
 
 @server.route('/submit', methods=['GET', 'POST'])
 def submit():
@@ -80,6 +87,11 @@ def submit():
             "Comments": comments
         }
         data = pd.concat([data, pd.DataFrame([new_entry])], ignore_index=True)
+
+        # Ensure 'Bar' column is treated as a categorical variable for coloring
+        data['Bar'] = data['Bar'].astype('category')
+
+        print(data)
         
         return f"""
             <!DOCTYPE html>
