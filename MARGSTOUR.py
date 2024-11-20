@@ -3,6 +3,7 @@ from dash import Dash, dcc, html
 from dash.dependencies import Output, Input
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # Flask app for the backend
@@ -88,9 +89,6 @@ def submit():
         }
         data = pd.concat([data, pd.DataFrame([new_entry])], ignore_index=True)
 
-        # Ensure 'Bar' column is treated as a categorical variable for coloring
-        data['Bar'] = data['Bar'].astype('category')
-
         print(data)
         
         return f"""
@@ -128,35 +126,80 @@ app.layout = html.Div([
 def update_graph(n):
     global data
     if data.empty:
-        return px.scatter(title="No Data Yet!")
+        return go.Figure().add_trace(go.Scatter(x=[], y=[], mode='text', text=["No Data Yet!"]))
 
-    # Create subplots for different ratings
-    fig = make_subplots(rows=4, cols=1, subplot_titles=(
-        "Margarita Ratings", "Price Ratings", "Atmosphere Ratings", "Average Ratings"),
+    # Ensure the 'Bar' column is treated as a category
+    data['Bar'] = data['Bar'].astype('category')
+
+    # Define a consistent color map for each unique Bar value
+    unique_bars = data['Bar'].unique()
+    color_map = {
+        bar: px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
+        for i, bar in enumerate(unique_bars)
+    }
+
+    # Create subplots with more vertical spacing
+    fig = make_subplots(
+        rows=4,
+        cols=1,
+        subplot_titles=(
+            "Margarita Ratings", "Price Ratings", "Atmosphere Ratings", "Average Ratings"
+        ),
         vertical_spacing=0.15
+    )
+
+    # Add separate traces for each unique Bar for each rating type
+    for bar in unique_bars:
+        filtered_data = data[data['Bar'] == bar]
+        color = color_map[bar]
+
+        # Margarita Rating trace
+        fig.add_trace(
+            go.Bar(
+                x=filtered_data['Bar'],
+                y=filtered_data['Margarita Rating'],
+                marker_color=color,
+                name=bar
+            ),
+            row=1, col=1
         )
-
-    # Create and add traces with customized showlegend properties
-    margarita_trace = px.bar(data, x="Bar", y="Margarita Rating", color="Bar").data[0]
-    price_trace = px.bar(data, x="Bar", y="Price Rating", color="Bar").data[0]
-    atmosphere_trace = px.bar(data, x="Bar", y="Atmosphere Rating", color="Bar").data[0]
-    average_trace = px.bar(data, x="Bar", y="Average Rating", color="Bar").data[0]
-
-    # Set showlegend to False for all but the first trace
-    price_trace.showlegend = False
-    atmosphere_trace.showlegend = False
-    average_trace.showlegend = False
-
-    # Add traces to the figure
-    fig.add_trace(margarita_trace, row=1, col=1)
-    fig.add_trace(price_trace, row=2, col=1)
-    fig.add_trace(atmosphere_trace, row=3, col=1)
-    fig.add_trace(average_trace, row=4, col=1)
+        
+        # Price Rating trace
+        fig.add_trace(
+            go.Bar(
+                x=filtered_data['Bar'],
+                y=filtered_data['Price Rating'],
+                marker_color=color,
+                showlegend=False  # Show the legend only in the first subplot
+            ),
+            row=2, col=1
+        )
+        
+        # Atmosphere Rating trace
+        fig.add_trace(
+            go.Bar(
+                x=filtered_data['Bar'],
+                y=filtered_data['Atmosphere Rating'],
+                marker_color=color,
+                showlegend=False  # Show the legend only in the first subplot
+            ),
+            row=3, col=1
+        )
+        
+        # Average Rating trace
+        fig.add_trace(
+            go.Bar(
+                x=filtered_data['Bar'],
+                y=filtered_data['Average Rating'],
+                marker_color=color,
+                showlegend=False  # Show the legend only in the first subplot
+            ),
+            row=4, col=1
+        )
 
     # Update layout for a cleaner look
     fig.update_layout(
-        #title_text="Margarita Tour Ratings Dashboard",
-        showlegend=True,  # Display the legend only for the first trace
+        showlegend=True,  # Ensure the legend is shown
         margin=dict(t=50, b=50, r=50)
     )
 
@@ -164,4 +207,3 @@ def update_graph(n):
 
 if __name__ == "__main__":
     server.run(debug=True, port=8050)
-
