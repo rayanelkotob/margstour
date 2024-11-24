@@ -74,22 +74,46 @@ def submit():
         atmosphere_rating = float(request.form.get("atmosphere_rating"))
         comments = request.form.get("comments")
 
-        # Calculate the average rating
-        average_rating = (margarita_rating + price_rating + atmosphere_rating) / 3
-
-        # Add to global data storage
         global data
-        new_entry = {
-            "Bar": bar,
-            "Margarita Rating": margarita_rating,
-            "Price Rating": price_rating,
-            "Atmosphere Rating": atmosphere_rating,
-            "Average Rating": average_rating,
-            "Comments": comments
-        }
-        data = pd.concat([data, pd.DataFrame([new_entry])], ignore_index=True)
 
-        print(data)
+        # Check if the bar already exists in the DataFrame
+        if bar in data['Bar'].values:
+            # Update existing bar's ratings
+            existing_row = data[data['Bar'] == bar].iloc[0]
+            existing_margarita_rating = existing_row['Margarita Rating']
+            existing_price_rating = existing_row['Price Rating']
+            existing_atmosphere_rating = existing_row['Atmosphere Rating']
+            existing_count = existing_row.get('Rating Count', 1)  # Default to 1 if not present
+
+            # Update the average ratings
+            new_count = existing_count + 1
+            updated_margarita_rating = (existing_margarita_rating * existing_count + margarita_rating) / new_count
+            updated_price_rating = (existing_price_rating * existing_count + price_rating) / new_count
+            updated_atmosphere_rating = (existing_atmosphere_rating * existing_count + atmosphere_rating) / new_count
+            updated_average_rating = (updated_margarita_rating + updated_price_rating + updated_atmosphere_rating) / 3
+            average_rating = (updated_margarita_rating + updated_price_rating + updated_atmosphere_rating) / 3
+
+            # Update the DataFrame row
+            data.loc[data['Bar'] == bar, 'Margarita Rating'] = updated_margarita_rating
+            data.loc[data['Bar'] == bar, 'Price Rating'] = updated_price_rating
+            data.loc[data['Bar'] == bar, 'Atmosphere Rating'] = updated_atmosphere_rating
+            data.loc[data['Bar'] == bar, 'Average Rating'] = updated_average_rating
+            data.loc[data['Bar'] == bar, 'Rating Count'] = new_count
+        else:
+            # Add a new entry for the bar
+            average_rating = (margarita_rating + price_rating + atmosphere_rating) / 3
+            new_entry = {
+                "Bar": bar,
+                "Margarita Rating": margarita_rating,
+                "Price Rating": price_rating,
+                "Atmosphere Rating": atmosphere_rating,
+                "Average Rating": average_rating,
+                "Rating Count": 1,
+                "Comments": comments
+            }
+            data = pd.concat([data, pd.DataFrame([new_entry])], ignore_index=True)
+
+        print(data)  # For debugging: confirm that the data updates correctly
         
         return f"""
             <!DOCTYPE html>
@@ -145,7 +169,7 @@ def update_graph(n):
         subplot_titles=(
             "Margarita Ratings", "Price Ratings", "Atmosphere Ratings", "Average Ratings"
         ),
-        vertical_spacing=0.15
+        vertical_spacing=0.1
     )
 
     # Add separate traces for each unique Bar for each rating type
@@ -197,10 +221,23 @@ def update_graph(n):
             row=4, col=1
         )
 
+    # Update y-axis settings for all subplots
+    for i in range(1, 5):  # Iterate through rows 1 to 4
+        fig.update_yaxes(
+            range=[0, 10],  # Set y-axis range
+            tickmode="linear",  # Show ticks at regular intervals
+            dtick=1,  # Interval between ticks
+            showgrid=True,  # Show grid lines
+            gridcolor="lightgrey",  # Optional: Set grid line color
+            row=i, col=1
+        )
+
+
     # Update layout for a cleaner look
     fig.update_layout(
         showlegend=True,  # Ensure the legend is shown
-        margin=dict(t=50, b=50, r=50)
+        margin=dict(t=50, b=50, r=50),
+        height=1200
     )
 
     return fig
