@@ -28,44 +28,107 @@ def submit():
             <html>
             <head>
                 <title>Margarita Tour Submission</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                     body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                    }
+
+                    form {
+                        max-width: 400px;
+                        margin: 20px auto;
+                        padding: 20px;
+                        border-radius: none;
+                        background-color: white;
+                        box-shadow: none;
+                    }
+
+                    label {
+                        font-size: 1.2em;
+                        margin-bottom: 8px;
+                        display: block;
+                    }
+
+                    input, select, textarea, button {
+                        width: 100%;
+                        max-width: 100%;
+                        padding: 10px;
+                        margin-bottom: 15px;
+                        border: 1px solid #ccc;
+                        border-radius: 5px;
+                    }
+
+                    textarea {
+                        resize: none;
+                        width: 100%;
+                        max-width: 100%;
+                    }
+
+                    button {
+                        background-color: #007bff;
+                        color: white;
+                        border: none;
+                        font-size: 1.2em;
+                        cursor: pointer;
+                    }
+
+                    button:hover {
+                        background-color: #0056b3;
+                    }
+                </style>
             </head>
             <body>
-                <h1>Submit Your Margarita Ratings</h1>
+                <h1 style="text-align: center;">Submit Your Margarita Ratings</h1>
                 <form method="post">
-                    <label for="bar">Bar Name:</label><br>
+                    <label for="bar">Bar Name:</label>
                     <select id="bar" name="bar" required>
                         <option value="">Select a bar</option>
                         <option value="3 Needs">3 Needs</option>
                         <option value="Drink">Drink</option>
                         <option value="Orlandos">Orlandos</option>
-                    </select><br><br>
+                    </select>
                     
-                    <label for="margarita_rating">Margarita Rating (1-10):</label><br>
+                    <label for="margarita_rating">Margarita Rating (1-10):</label>
                     <select id="margarita_rating" name="margarita_rating" required>
                         <option value="">Select a rating</option>
-                        ''' + ''.join([f'<option value="{i}">{i}</option>' for i in range(1, 11)]) + '''
-                    </select><br><br>
+                        <!-- Generate options dynamically -->
+                        <script>
+                            for (let i = 1; i <= 10; i++) {
+                                document.write(`<option value="${i}">${i}</option>`);
+                            }
+                        </script>
+                    </select>
 
-                    <label for="price_rating">Price Rating (1-10):</label><br>
+                    <label for="price_rating">Price Rating (1-10):</label>
                     <select id="price_rating" name="price_rating" required>
                         <option value="">Select a rating</option>
-                        ''' + ''.join([f'<option value="{i}">{i}</option>' for i in range(1, 11)]) + '''
-                    </select><br><br>
+                        <script>
+                            for (let i = 1; i <= 10; i++) {
+                                document.write(`<option value="${i}">${i}</option>`);
+                            }
+                        </script>
+                    </select>
 
-                    <label for="atmosphere_rating">Atmosphere Rating (1-10):</label><br>
+                    <label for="atmosphere_rating">Atmosphere Rating (1-10):</label>
                     <select id="atmosphere_rating" name="atmosphere_rating" required>
                         <option value="">Select a rating</option>
-                        ''' + ''.join([f'<option value="{i}">{i}</option>' for i in range(1, 11)]) + '''
-                    </select><br><br>
-                    
-                    <label for="comments">Comments:</label><br>
-                    <textarea id="comments" name="comments"></textarea><br><br>
-                    
+                        <script>
+                            for (let i = 1; i <= 10; i++) {
+                                document.write(`<option value="${i}">${i}</option>`);
+                            }
+                        </script>
+                    </select>
+
+                    <label for="comments">Comments:</label>
+                    <textarea id="comments" name="comments" rows="4"></textarea>
+
                     <button type="submit">Submit</button>
                 </form>
             </body>
             </html>
-        '''
+            '''
     elif request.method == 'POST':
         # Process the submitted data
         bar = request.form.get("bar")
@@ -120,11 +183,65 @@ def submit():
             <html>
             <head>
                 <title>Thank You!</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        background-color: white;
+                    }}
+
+                    .thank-you-container {{
+                        max-width: 400px;
+                        text-align: center;
+                        padding: 20px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        border-radius: 8px;
+                        background-color: white;
+                        box-shadow: none;
+                    }}
+
+                    h1 {{
+                        font-size: 1.8em;
+                        margin-bottom: 20px;
+                    }}
+
+                    p {{
+                        font-size: 1.2em;
+                        margin-bottom: 20px;
+                    }}
+
+                    button {{
+                        width: 100%;
+                        font-size: 1.2em;
+                        padding: 10px;
+                        background-color: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    }}
+
+                    button:hover {{
+                        background-color: #0056b3;
+                    }}
+                </style>
             </head>
             <body>
-                <h1>Thank you for your submission!</h1>
-                <p>Bar: {bar}, Margarita Rating: {margarita_rating}, Price Rating: {price_rating}, Atmosphere Rating: {atmosphere_rating}, Average Rating: {average_rating:.2f}</p>
-                <button onclick="window.location.href='/submit'">Create New Submission</button>
+                <div class="thank-you-container">
+                    <h1>Thank you for your submission!</h1>
+                    <p><strong>Bar:</strong> {bar}</p>
+                    <p><strong>Margarita Rating:</strong> {margarita_rating}</p>
+                    <p><strong>Price Rating:</strong> {price_rating}</p>
+                    <p><strong>Atmosphere Rating:</strong> {atmosphere_rating}</p>
+                    <p><strong>Average Rating:</strong> {average_rating:.2f}</p>
+                    <button onclick="window.location.href='/submit'">Create New Submission</button>
+                </div>
             </body>
             </html>
         """
@@ -243,4 +360,4 @@ def update_graph(n):
     return fig
 
 if __name__ == "__main__":
-    server.run(debug=True, port=8050)
+    server.run(debug=True, host='0.0.0.0', port=8050)
