@@ -5,12 +5,46 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import json
+import base64
+
+# Read the base64-encoded key from the environment variable
+base64_encoded_key = os.getenv("GOOGLE_CREDENTIALS")
+if not base64_encoded_key:
+    raise ValueError("Environment variable GOOGLE_CREDENTIALS is not set")
+
+# Debugging: Check the length of the encoded key
+print("DEBUG: Encoded Key Length:", len(base64_encoded_key))
+
+# Ensure proper padding
+if len(base64_encoded_key) % 4 != 0:
+    base64_encoded_key += '=' * (4 - len(base64_encoded_key) % 4)
+
+try:
+    decoded_key = json.loads(base64.b64decode(base64_encoded_key).decode("utf-8"))
+    print("Decoded Key:", decoded_key)  # For debugging, remove in production
+except Exception as e:
+    raise ValueError(f"Failed to decode GOOGLE_CREDENTIALS: {e}")
+
+
+
+
+# Authenticate and connect to Google Sheets
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(decoded_key, scope)
+client = gspread.authorize(credentials)
+
+# Open your Google Sheet
+sheet = client.open("margs-crawl-database").sheet1
 
 # Flask app for the backend
 server = Flask(__name__)
 
 # Shared data storage
-data = pd.DataFrame(columns=[
+data_old = pd.DataFrame(columns=[
     "Bar",
     "Margarita Rating",
     "Price Rating",
@@ -201,46 +235,11 @@ def submit():
         atmosphere_rating = float(request.form.get("atmosphere_rating"))
         comments = request.form.get("comments")
 
-        global data
+        # Calculate the overall average rating
+        average_rating = (margarita_rating + price_rating + atmosphere_rating) / 3
 
-        # Check if the bar already exists in the DataFrame
-        if bar in data['Bar'].values:
-            # Update existing bar's ratings
-            existing_row = data[data['Bar'] == bar].iloc[0]
-            existing_margarita_rating = existing_row['Margarita Rating']
-            existing_price_rating = existing_row['Price Rating']
-            existing_atmosphere_rating = existing_row['Atmosphere Rating']
-            existing_count = existing_row.get('Rating Count', 1)  # Default to 1 if not present
-
-            # Update the average ratings
-            new_count = existing_count + 1
-            updated_margarita_rating = (existing_margarita_rating * existing_count + margarita_rating) / new_count
-            updated_price_rating = (existing_price_rating * existing_count + price_rating) / new_count
-            updated_atmosphere_rating = (existing_atmosphere_rating * existing_count + atmosphere_rating) / new_count
-            updated_average_rating = (updated_margarita_rating + updated_price_rating + updated_atmosphere_rating) / 3
-            average_rating = (updated_margarita_rating + updated_price_rating + updated_atmosphere_rating) / 3
-
-            # Update the DataFrame row
-            data.loc[data['Bar'] == bar, 'Margarita Rating'] = updated_margarita_rating
-            data.loc[data['Bar'] == bar, 'Price Rating'] = updated_price_rating
-            data.loc[data['Bar'] == bar, 'Atmosphere Rating'] = updated_atmosphere_rating
-            data.loc[data['Bar'] == bar, 'Average Rating'] = updated_average_rating
-            data.loc[data['Bar'] == bar, 'Rating Count'] = new_count
-        else:
-            # Add a new entry for the bar
-            average_rating = (margarita_rating + price_rating + atmosphere_rating) / 3
-            new_entry = {
-                "Bar": bar,
-                "Margarita Rating": margarita_rating,
-                "Price Rating": price_rating,
-                "Atmosphere Rating": atmosphere_rating,
-                "Average Rating": average_rating,
-                "Rating Count": 1,
-                "Comments": comments
-            }
-            data = pd.concat([data, pd.DataFrame([new_entry])], ignore_index=True)
-
-        print(data)  # For debugging: confirm that the data updates correctly
+        # Append to Google Sheets
+        sheet.append_row([bar, margarita_rating, price_rating, atmosphere_rating, average_rating, comments])
         
         return f"""
             <!DOCTYPE html>
@@ -322,6 +321,16 @@ app = Dash(
     url_base_pathname='/dashboard/',
     external_stylesheets=["https://fonts.googleapis.com/css2?family=Lilita+One&display=swap"]
 )
+
+def fetch_sheet_data():
+    try:
+        sheet = client.open("margs-crawl-database").sheet1
+        records = sheet.get_all_records()
+        print(f"Fetched {len(records)} records from Google Sheets")
+        return pd.DataFrame(records)
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return pd.DataFrame()  # Return empty DataFrame on error
 
 # Define the layout
 app.layout = html.Div(
@@ -405,15 +414,31 @@ app.layout = html.Div(
     Input('interval-component', 'n_intervals')
 )
 def update_graph(n):
-    global data
-    if data.empty:
+    # Fetch raw data
+    raw_data = fetch_sheet_data()
+
+    if raw_data.empty:
         return go.Figure().add_trace(go.Scatter(x=[], y=[], mode='text', text=["No Data Yet!"]))
 
-    # Ensure the 'Bar' column is treated as a category
-    data['Bar'] = data['Bar'].astype('category')
+    # Ensure the necessary columns exist
+    if not all(col in raw_data.columns for col in ["Bar", "Margarita Rating", "Price Rating", "Atmosphere Rating"]):
+        return go.Figure().add_trace(go.Scatter(x=[], y=[], mode='text', text=["Data Missing Columns"]))
+
+    # Group data by 'Bar' and calculate averages for ratings
+    grouped_data = raw_data.groupby("Bar", as_index=False).agg({
+        "Margarita Rating": "mean",
+        "Price Rating": "mean",
+        "Atmosphere Rating": "mean"
+    })
+
+    # Calculate the average of averages for each bar
+    grouped_data["Average Rating"] = grouped_data[["Margarita Rating", "Price Rating", "Atmosphere Rating"]].mean(axis=1)
+
+    # Ensure 'Bar' is treated as a category
+    grouped_data['Bar'] = grouped_data['Bar'].astype('category')
 
     # Define a consistent color map for each unique Bar value
-    unique_bars = data['Bar'].unique()
+    unique_bars = grouped_data['Bar'].unique()
     color_map = {
         bar: px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
         for i, bar in enumerate(unique_bars)
@@ -431,7 +456,7 @@ def update_graph(n):
 
     # Add separate traces for each unique Bar for each rating type
     for bar in unique_bars:
-        filtered_data = data[data['Bar'] == bar]
+        filtered_data = grouped_data[grouped_data['Bar'] == bar]
         color = color_map[bar]
 
         # Add traces for different rating types
