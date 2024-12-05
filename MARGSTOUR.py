@@ -49,7 +49,7 @@ data_old = pd.DataFrame(columns=[
     "Average Rating"
 ])
 
-@server.route('/home')
+@server.route('/')
 def homepage():
     return """
     <!DOCTYPE html>
