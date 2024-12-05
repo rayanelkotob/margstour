@@ -355,7 +355,7 @@ app.layout = html.Div(
                 ),
                 dcc.Interval(
                     id='interval-component',
-                    interval=5 * 1000,  # Update every 5 seconds
+                    interval=30 * 1000,  # Update every 30 seconds
                     n_intervals=0
                 )
             ]
