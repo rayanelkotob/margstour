@@ -219,7 +219,7 @@ def submit():
 
                     <button type="submit">SUBMIT</button>
                     <button type="button" onclick="window.location.href='/dashboard'">GO TO DASHBOARD</button>
-                    <button type="button" onclick="window.location.href='/home'">GO TO HOMEPAGE</button>
+                    <button type="button" onclick="window.location.href='/'">GO TO HOMEPAGE</button>
                 </form>
             </body>
             </html>
@@ -305,7 +305,7 @@ def submit():
                     <p><strong>AVERAGE RATING:</strong> {average_rating:.2f}</p>
                     <button onclick="window.location.href='/submit'">CREATE NEW SUBMISSION</button>
                     <button type="button" onclick="window.location.href='/dashboard'">GO TO DASHBOARD</button>
-                    <button type="button" onclick="window.location.href='/home'">GO TO HOMEPAGE</button>
+                    <button type="button" onclick="window.location.href='/'">GO TO HOMEPAGE</button>
                 </div>
             </body>
             </html>
@@ -384,7 +384,7 @@ app.layout = html.Div(
                 ),
                 html.A(
                     "GO TO HOMEPAGE",
-                    href="/home",
+                    href="/",
                     style={
                         "display": "inline-block",
                         "background-color": "#abd148",
