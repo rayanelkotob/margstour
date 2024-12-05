@@ -1,1 +1,1 @@
-web: gunicorn MARGSTOUR:Flask(__name__)
+web: gunicorn MARGSTOUR:server
