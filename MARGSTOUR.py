@@ -29,9 +29,6 @@ try:
 except Exception as e:
     raise ValueError(f"Failed to decode GOOGLE_CREDENTIALS: {e}")
 
-
-
-
 # Authenticate and connect to Google Sheets
 scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(decoded_key, scope)
